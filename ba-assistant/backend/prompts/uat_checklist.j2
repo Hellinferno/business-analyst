@@ -1,0 +1,31 @@
+You are a UAT (User Acceptance Testing) expert. Generate a comprehensive test checklist based on the provided requirements and user stories.
+
+Requirements:
+{{ requirements }}
+
+User Stories:
+{{ user_stories }}
+
+Generate test cases that provide thorough coverage, including:
+1. Functional testing — core feature behaviour
+2. Integration testing — interactions between components
+3. Edge cases — boundary values and unusual inputs
+4. Negative scenarios — invalid inputs and error handling
+5. Performance considerations — basic load and response time checks
+6. Security checks — authentication, authorisation, data validation
+7. Usability — key UX flows from the user's perspective
+
+For each test case, specify the test type, a clear scenario, steps, and the expected result.
+
+Return ONLY a valid JSON array with no additional text, using this exact format:
+[
+  {
+    "test_id": "TC-001",
+    "category": "Functional|Integration|Edge Case|Negative|Performance|Security|Usability",
+    "test_case": "Short descriptive title",
+    "scenario": "Detailed description of the test scenario",
+    "steps": ["Step 1", "Step 2", "Step 3"],
+    "expected_result": "What should happen",
+    "priority": "High|Medium|Low"
+  }
+]

@@ -1,0 +1,53 @@
+You are a requirements quality expert. Analyse the following requirements for ambiguity, gaps, and conflicts.
+
+Requirements:
+{{ requirements }}
+
+Perform a thorough requirements quality analysis covering:
+1. Ambiguous Terms — words or phrases that could be interpreted in multiple ways
+2. Gaps — missing information needed to implement the requirements
+3. Conflicts — requirements that contradict or conflict with each other
+4. Testability Issues — requirements that cannot be objectively verified
+5. Completeness Issues — requirements that are too vague to implement
+
+For each finding, provide:
+- The specific requirement or term with the issue
+- A clear explanation of the problem
+- A concrete suggestion for resolution
+
+Return ONLY a valid JSON object with no additional text, using this exact format:
+{
+  "ambiguous_terms": [
+    {
+      "term": "the ambiguous word or phrase",
+      "requirement": "the full requirement containing it",
+      "issue": "why it is ambiguous",
+      "suggestion": "how to make it unambiguous"
+    }
+  ],
+  "gaps": [
+    {
+      "area": "topic area with missing info",
+      "missing_info": "what information is missing",
+      "impact": "why this gap matters",
+      "suggested_question": "question to ask stakeholders"
+    }
+  ],
+  "conflicts": [
+    {
+      "requirement_a": "first conflicting requirement",
+      "requirement_b": "second conflicting requirement",
+      "conflict_description": "how they conflict",
+      "resolution": "suggested resolution"
+    }
+  ],
+  "testability_issues": [
+    {
+      "requirement": "the requirement with the issue",
+      "issue": "why it cannot be tested objectively",
+      "suggestion": "how to make it testable"
+    }
+  ],
+  "overall_quality_score": 75,
+  "summary": "Brief overall assessment of requirements quality"
+}

@@ -1,0 +1,18 @@
+You are a Business Analysis expert helping to conduct stakeholder interviews.
+Generate 10-15 structured interview questions for a new project.
+
+Project Name: {{ project_name }}
+Project Description: {{ project_description }}
+Stakeholders: {{ stakeholders }}
+
+Generate questions organized by these categories:
+1. Business Context & Goals
+2. User Needs & Expectations
+3. Current Pain Points
+4. Success Criteria
+5. Constraints & Dependencies
+
+Each question should be open-ended, specific to the project context, and designed to uncover hidden requirements.
+
+Return ONLY a valid JSON array with no additional text, using this exact format:
+[{"category": "Business Context & Goals", "question": "...", "rationale": "..."}]

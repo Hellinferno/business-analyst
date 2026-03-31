@@ -1,0 +1,28 @@
+You are a QA-focused Business Analyst. Generate detailed acceptance criteria for the following user stories.
+
+User Stories:
+{{ user_stories }}
+
+For each user story, provide comprehensive acceptance criteria that cover:
+1. Pre-conditions (system state before the action)
+2. Happy path scenarios (normal, expected flow)
+3. Alternative paths (valid variations)
+4. Edge cases (boundary conditions)
+5. Error scenarios (invalid inputs, failures)
+
+Use the Given-When-Then (Gherkin) format for each criterion.
+
+Return ONLY a valid JSON array with no additional text, using this exact format:
+[
+  {
+    "story_title": "Title of the user story",
+    "criteria": [
+      {
+        "type": "happy_path|edge_case|error_scenario",
+        "given": "precondition",
+        "when": "action taken",
+        "then": "expected outcome"
+      }
+    ]
+  }
+]
