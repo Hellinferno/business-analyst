@@ -1,10 +1,12 @@
+import json
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from app.core.dependencies import get_db, get_current_active_user
+from app.core.limiter import limiter
 from app.db.repositories.document_repository import DocumentRepository
 from app.db.models.user import User
 from app.db.models.document import Document, DocumentType
@@ -12,36 +14,45 @@ from app.services.ai_service import ai_service
 
 router = APIRouter(prefix="/documents", tags=["Document Generation"])
 
+_MAX_TEXT = 10_000  # characters — guards against runaway prompts
+
 
 class GenerateBRDRequest(BaseModel):
-    project_name: str
-    project_description: str
-    requirements: str
-    scope_in: Optional[str] = None
-    scope_out: Optional[str] = None
+    project_name: str = Field(..., min_length=1, max_length=255)
+    project_description: str = Field(..., min_length=1, max_length=_MAX_TEXT)
+    requirements: str = Field(..., min_length=1, max_length=_MAX_TEXT)
+    scope_in: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    scope_out: Optional[str] = Field(None, max_length=_MAX_TEXT)
 
 
 class GenerateUserStoriesRequest(BaseModel):
-    project_name: str
-    requirements: str
-    user_personas: Optional[str] = None
+    project_name: str = Field(..., min_length=1, max_length=255)
+    requirements: str = Field(..., min_length=1, max_length=_MAX_TEXT)
+    user_personas: Optional[str] = Field(None, max_length=_MAX_TEXT)
 
 
 class GenerateAcceptanceCriteriaRequest(BaseModel):
-    user_stories: str
+    user_stories: str = Field(..., min_length=1, max_length=_MAX_TEXT)
 
 
 class DocumentCreate(BaseModel):
-    title: str
+    title: str = Field(..., min_length=1, max_length=255)
     document_type: DocumentType
     content: str
     input_data: Optional[str] = None
 
 
 class DocumentUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=255)
     content: Optional[str] = None
     is_public: Optional[bool] = None
+
+
+class DocumentListItem(BaseModel):
+    id: str
+    title: str
+    document_type: DocumentType
+    created_at: str
 
 
 class DocumentResponse(BaseModel):
@@ -51,86 +62,85 @@ class DocumentResponse(BaseModel):
     content: str
     created_at: str
 
-    class Config:
-        from_attributes = True
+
+def _doc_response(doc: Document) -> DocumentResponse:
+    return DocumentResponse(
+        id=doc.id,
+        title=doc.title,
+        document_type=doc.document_type,
+        content=doc.content,
+        created_at=doc.created_at.isoformat(),
+    )
 
 
 @router.post("/brd", response_model=DocumentResponse)
+@limiter.limit("10/minute")
 async def generate_brd(
-    request: GenerateBRDRequest,
+    request_data: GenerateBRDRequest,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     content = await ai_service.generate_brd(
-        project_name=request.project_name,
-        project_description=request.project_description,
-        requirements=request.requirements,
-        scope_in=request.scope_in,
-        scope_out=request.scope_out,
+        project_name=request_data.project_name,
+        project_description=request_data.project_description,
+        requirements=request_data.requirements,
+        scope_in=request_data.scope_in,
+        scope_out=request_data.scope_out,
     )
 
     document = Document(
         id=str(uuid.uuid4()),
         user_id=current_user.id,
-        title=f"BRD - {request.project_name}",
+        title=f"BRD - {request_data.project_name}",
         document_type=DocumentType.BRD,
         content=content,
-        input_data=str(request.model_dump()),
+        input_data=json.dumps(request_data.model_dump()),
     )
 
     doc_repo = DocumentRepository(db)
     created_doc = await doc_repo.create(document)
-
-    return DocumentResponse(
-        id=created_doc.id,
-        title=created_doc.title,
-        document_type=created_doc.document_type,
-        content=created_doc.content,
-        created_at=created_doc.created_at.isoformat(),
-    )
+    return _doc_response(created_doc)
 
 
 @router.post("/user-stories", response_model=DocumentResponse)
+@limiter.limit("10/minute")
 async def generate_user_stories(
-    request: GenerateUserStoriesRequest,
+    request_data: GenerateUserStoriesRequest,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     content = await ai_service.generate_user_stories(
-        project_name=request.project_name,
-        requirements=request.requirements,
-        user_personas=request.user_personas,
+        project_name=request_data.project_name,
+        requirements=request_data.requirements,
+        user_personas=request_data.user_personas,
     )
 
     document = Document(
         id=str(uuid.uuid4()),
         user_id=current_user.id,
-        title=f"User Stories - {request.project_name}",
+        title=f"User Stories - {request_data.project_name}",
         document_type=DocumentType.USER_STORY,
         content=content,
-        input_data=str(request.model_dump()),
+        input_data=json.dumps(request_data.model_dump()),
     )
 
     doc_repo = DocumentRepository(db)
     created_doc = await doc_repo.create(document)
-
-    return DocumentResponse(
-        id=created_doc.id,
-        title=created_doc.title,
-        document_type=created_doc.document_type,
-        content=created_doc.content,
-        created_at=created_doc.created_at.isoformat(),
-    )
+    return _doc_response(created_doc)
 
 
 @router.post("/acceptance-criteria", response_model=DocumentResponse)
+@limiter.limit("10/minute")
 async def generate_acceptance_criteria(
-    request: GenerateAcceptanceCriteriaRequest,
+    request_data: GenerateAcceptanceCriteriaRequest,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     content = await ai_service.generate_acceptance_criteria(
-        user_stories=request.user_stories,
+        user_stories=request_data.user_stories,
     )
 
     document = Document(
@@ -143,17 +153,10 @@ async def generate_acceptance_criteria(
 
     doc_repo = DocumentRepository(db)
     created_doc = await doc_repo.create(document)
-
-    return DocumentResponse(
-        id=created_doc.id,
-        title=created_doc.title,
-        document_type=created_doc.document_type,
-        content=created_doc.content,
-        created_at=created_doc.created_at.isoformat(),
-    )
+    return _doc_response(created_doc)
 
 
-@router.get("", response_model=List[DocumentResponse])
+@router.get("", response_model=List[DocumentListItem])
 async def list_documents(
     doc_type: Optional[DocumentType] = None,
     limit: int = 50,
@@ -163,16 +166,15 @@ async def list_documents(
     doc_repo = DocumentRepository(db)
 
     if doc_type:
-        documents = await doc_repo.get_by_type(current_user.id, doc_type)
+        documents = await doc_repo.get_by_type(current_user.id, doc_type, limit)
     else:
         documents = await doc_repo.get_by_user_id(current_user.id, limit)
 
     return [
-        DocumentResponse(
+        DocumentListItem(
             id=doc.id,
             title=doc.title,
             document_type=doc.document_type,
-            content=doc.content,
             created_at=doc.created_at.isoformat(),
         )
         for doc in documents
@@ -200,13 +202,7 @@ async def get_document(
             detail="Not authorized to access this document",
         )
 
-    return DocumentResponse(
-        id=document.id,
-        title=document.title,
-        document_type=document.document_type,
-        content=document.content,
-        created_at=document.created_at.isoformat(),
-    )
+    return _doc_response(document)
 
 
 @router.patch("/{document_id}", response_model=DocumentResponse)
@@ -239,14 +235,7 @@ async def update_document(
         document.is_public = update_data.is_public
 
     updated_doc = await doc_repo.update(document)
-
-    return DocumentResponse(
-        id=updated_doc.id,
-        title=updated_doc.title,
-        document_type=updated_doc.document_type,
-        content=updated_doc.content,
-        created_at=updated_doc.created_at.isoformat(),
-    )
+    return _doc_response(updated_doc)
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

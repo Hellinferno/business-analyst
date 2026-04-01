@@ -1,37 +1,51 @@
 import json
-from typing import Optional, Dict, Any, List
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import PromptTemplate
-from langchain.output_parsers import JsonOutputParser
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-from pydantic import BaseModel
+import logging
+from pathlib import Path
+from typing import Optional
+
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoescape
 
 from app.core.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
 
+# Absolute path so templates are found regardless of the process working directory
+_PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts"
+
 env = Environment(
-    loader=FileSystemLoader("prompts"),
+    loader=FileSystemLoader(str(_PROMPTS_DIR)),
     autoescape=select_autoescape(["html", "xml"]),
 )
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
-    google_api_key=settings.gemini_api_key,
-    temperature=0.7,
-    max_tokens=4000,
-)
+_llm = None  # Lazily initialised on first AI call
+
+
+def _get_llm():
+    global _llm
+    if _llm is None:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            google_api_key=settings.gemini_api_key,
+            temperature=0.7,
+            max_tokens=4000,
+        )
+    return _llm
 
 
 class AIService:
-    def __init__(self):
-        self.llm = llm
-
     def load_prompt(self, template_name: str, **kwargs) -> str:
         try:
             template = env.get_template(f"{template_name}.j2")
             return template.render(**kwargs)
-        except Exception:
+        except TemplateNotFound:
+            logger.warning("Prompt template '%s.j2' not found in %s, using built-in fallback", template_name, _PROMPTS_DIR)
+            return self._get_default_prompt(template_name, **kwargs)
+        except Exception as exc:
+            logger.error("Error rendering template '%s.j2': %s", template_name, exc, exc_info=True)
             return self._get_default_prompt(template_name, **kwargs)
 
     def _get_default_prompt(self, template_name: str, **kwargs) -> str:
@@ -48,13 +62,16 @@ class AIService:
         return defaults.get(template_name, "Generate content based on: " + str(kwargs))
 
     async def generate(self, prompt: str, format_json: bool = False) -> str:
+        llm = _get_llm()
         if format_json:
+            from langchain.output_parsers import JsonOutputParser
+
             parser = JsonOutputParser()
-            chain = self.llm | parser
+            chain = llm | parser
             response = await chain.ainvoke(prompt)
             return json.dumps(response, indent=2)
         else:
-            response = await self.llm.ainvoke(prompt)
+            response = await llm.ainvoke(prompt)
             return response.content
 
     async def generate_elicitation_questions(

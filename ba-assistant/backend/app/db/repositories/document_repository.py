@@ -24,11 +24,12 @@ class DocumentRepository:
         )
         return list(result.scalars().all())
 
-    async def get_by_type(self, user_id: str, doc_type: DocumentType) -> List[Document]:
+    async def get_by_type(self, user_id: str, doc_type: DocumentType, limit: int = 50) -> List[Document]:
         result = await self.db.execute(
             select(Document)
             .where(Document.user_id == user_id, Document.document_type == doc_type)
             .order_by(Document.updated_at.desc())
+            .limit(limit)
         )
         return list(result.scalars().all())
 

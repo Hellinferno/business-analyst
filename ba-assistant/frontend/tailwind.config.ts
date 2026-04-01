@@ -8,6 +8,7 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      /* ── shadcn/ui CSS-variable tokens ────────────────── */
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -42,7 +43,36 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+
+        /* ── Meridian design tokens ───────────────────────── */
+        void:    'var(--void)',
+        surface: {
+          low:  'var(--surf-0)',
+          mid:  'var(--surf-1)',
+          high: 'var(--surf-2)',
+        },
+        ink: {
+          primary:   'var(--text-1)',
+          secondary: 'var(--text-2)',
+          tertiary:  'var(--text-3)',
+        },
+        lime: {
+          DEFAULT: 'var(--lime)',
+          dim:     'var(--lime-dim)',
+        },
+        wire: {
+          low: 'var(--bdr-0)',
+          mid: 'var(--bdr-1)',
+        },
       },
+
+      /* ── Font families ────────────────────────────────── */
+      fontFamily: {
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        ui:      ['var(--font-ui)',      'system-ui', 'sans-serif'],
+        mono:    ['var(--font-mono)',    'monospace'],
+      },
+
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

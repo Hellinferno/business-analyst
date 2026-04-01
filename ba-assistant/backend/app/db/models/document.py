@@ -13,6 +13,8 @@ class DocumentType(str, enum.Enum):
     UAT_CHECKLIST = "uat_checklist"
     PROCESS_MAP = "process_map"
     COMMUNICATION = "communication"
+    SCOPE_DEFINITION = "scope_definition"
+    AMBIGUITY_REPORT = "ambiguity_report"
 
 
 class Document(Base):

@@ -1,60 +1,69 @@
+import json
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
-import json
 
 from app.core.dependencies import get_db, get_current_active_user
+from app.core.limiter import limiter
+from app.db.repositories.document_repository import DocumentRepository
 from app.db.repositories.elicitation_repository import ElicitationRepository
 from app.db.models.user import User
+from app.db.models.document import Document, DocumentType
 from app.db.models.elicitation import ElicitationSession, GeneratedQuestion
 from app.services.ai_service import ai_service
 
 router = APIRouter(prefix="/elicitation", tags=["Requirements Elicitation"])
 
+_MAX_TEXT = 10_000
+
 
 class GenerateQuestionsRequest(BaseModel):
-    project_name: str
-    project_description: str
-    stakeholders: Optional[str] = None
+    project_name: str = Field(..., min_length=1, max_length=255)
+    project_description: str = Field(..., min_length=1, max_length=_MAX_TEXT)
+    stakeholders: Optional[str] = Field(None, max_length=_MAX_TEXT)
+
+
+class QuestionItem(BaseModel):
+    category: str
+    question: str
+    rationale: str
 
 
 class GenerateQuestionsResponse(BaseModel):
     session_id: str
-    questions: List[dict]
+    questions: List[QuestionItem]
 
 
 class ScopeWizardRequest(BaseModel):
-    project_name: str
-    project_description: str
-    initial_scope: str
+    project_name: str = Field(..., min_length=1, max_length=255)
+    project_description: str = Field(..., min_length=1, max_length=_MAX_TEXT)
+    initial_scope: str = Field(..., min_length=1, max_length=_MAX_TEXT)
 
 
 class ScopeWizardResponse(BaseModel):
-    scope_statement: str
-    in_scope: List[str]
-    out_of_scope: List[str]
-    assumptions: List[str]
-    risks: List[str]
+    document_id: str
+    content: str
 
 
 class AmbiguityCheckRequest(BaseModel):
-    requirements: str
+    requirements: str = Field(..., min_length=1, max_length=_MAX_TEXT)
 
 
 class AmbiguityCheckResponse(BaseModel):
+    document_id: str
     ambiguous_terms: List[dict]
     gaps: List[dict]
     conflicts: List[dict]
 
 
 class CreateSessionRequest(BaseModel):
-    project_name: str
-    project_description: Optional[str] = None
-    scope_in: Optional[str] = None
-    scope_out: Optional[str] = None
-    stakeholders: Optional[str] = None
+    project_name: str = Field(..., min_length=1, max_length=255)
+    project_description: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    scope_in: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    scope_out: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    stakeholders: Optional[str] = Field(None, max_length=_MAX_TEXT)
 
 
 class SessionResponse(BaseModel):
@@ -68,33 +77,46 @@ class SessionResponse(BaseModel):
 
 
 @router.post("/generate-questions", response_model=GenerateQuestionsResponse)
+@limiter.limit("10/minute")
 async def generate_questions(
-    request: GenerateQuestionsRequest,
+    request_data: GenerateQuestionsRequest,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     session_id = str(uuid.uuid4())
 
     questions_json = await ai_service.generate_elicitation_questions(
-        project_name=request.project_name,
-        project_description=request.project_description,
-        stakeholders=request.stakeholders,
+        project_name=request_data.project_name,
+        project_description=request_data.project_description,
+        stakeholders=request_data.stakeholders,
     )
 
     try:
-        questions = json.loads(questions_json)
+        raw_questions = json.loads(questions_json)
     except json.JSONDecodeError:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to parse generated questions",
         )
 
+    # Normalise to QuestionItem — tolerate extra or missing keys from the LLM
+    questions = [
+        QuestionItem(
+            category=q.get("category", "General"),
+            question=q.get("question", ""),
+            rationale=q.get("rationale", ""),
+        )
+        for q in raw_questions
+        if isinstance(q, dict)
+    ]
+
     session = ElicitationSession(
         id=session_id,
         user_id=current_user.id,
-        project_name=request.project_name,
-        project_description=request.project_description,
-        stakeholders=request.stakeholders,
+        project_name=request_data.project_name,
+        project_description=request_data.project_description,
+        stakeholders=request_data.stakeholders,
         status="questions_generated",
     )
 
@@ -105,45 +127,77 @@ async def generate_questions(
         question = GeneratedQuestion(
             id=str(uuid.uuid4()),
             session_id=session_id,
-            question_text=q.get("question", ""),
-            question_category=q.get("category", "General"),
+            question_text=q.question,
+            question_category=q.category,
         )
         await elicitation_repo.create_question(question)
 
-    return GenerateQuestionsResponse(
-        session_id=session_id,
-        questions=questions,
-    )
+    return GenerateQuestionsResponse(session_id=session_id, questions=questions)
 
 
-@router.post("/scope-wizard", response_model=dict)
+@router.post("/scope-wizard", response_model=ScopeWizardResponse)
+@limiter.limit("10/minute")
 async def scope_wizard(
-    request: ScopeWizardRequest,
+    request_data: ScopeWizardRequest,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
 ):
     result = await ai_service.generate_scope_wizard(
-        project_name=request.project_name,
-        project_description=request.project_description,
-        initial_scope=request.initial_scope,
+        project_name=request_data.project_name,
+        project_description=request_data.project_description,
+        initial_scope=request_data.initial_scope,
     )
 
-    return {"content": result}
+    document = Document(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        title=f"Scope Definition - {request_data.project_name}",
+        document_type=DocumentType.SCOPE_DEFINITION,
+        content=result,
+        input_data=json.dumps(request_data.model_dump()),
+    )
+    doc_repo = DocumentRepository(db)
+    created_doc = await doc_repo.create(document)
+
+    return ScopeWizardResponse(document_id=created_doc.id, content=result)
 
 
-@router.post("/ambiguity-check", response_model=dict)
+@router.post("/ambiguity-check", response_model=AmbiguityCheckResponse)
+@limiter.limit("10/minute")
 async def check_ambiguity(
-    request: AmbiguityCheckRequest,
+    request_data: AmbiguityCheckRequest,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    result = await ai_service.check_ambiguity(
-        requirements=request.requirements,
-    )
+    result = await ai_service.check_ambiguity(requirements=request_data.requirements)
 
     try:
         parsed = json.loads(result)
-        return parsed
     except json.JSONDecodeError:
-        return {"raw_analysis": result}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to parse ambiguity analysis",
+        )
+
+    document = Document(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        title="Ambiguity Report",
+        document_type=DocumentType.AMBIGUITY_REPORT,
+        content=result,
+        input_data=json.dumps(request_data.model_dump()),
+    )
+    doc_repo = DocumentRepository(db)
+    created_doc = await doc_repo.create(document)
+
+    return AmbiguityCheckResponse(
+        document_id=created_doc.id,
+        ambiguous_terms=parsed.get("ambiguous_terms", []),
+        gaps=parsed.get("gaps", []),
+        conflicts=parsed.get("conflicts", []),
+    )
 
 
 @router.post("/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
@@ -164,7 +218,6 @@ async def create_session(
 
     elicitation_repo = ElicitationRepository(db)
     created_session = await elicitation_repo.create_session(session)
-
     return created_session
 
 

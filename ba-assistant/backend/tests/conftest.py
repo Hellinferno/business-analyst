@@ -1,4 +1,9 @@
 """Test configuration and fixtures."""
+import os
+
+# Set test secrets before any app module is imported so validators pass
+os.environ.setdefault("JWT_SECRET", "test-secret-for-pytest-only-do-not-use-in-production-x")
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
