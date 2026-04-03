@@ -11,15 +11,16 @@ from app.core.limiter import limiter
 
 settings = get_settings()
 
-CORS_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://localhost:3000",
-]
-
-# Allow additional origins from environment in production
-if settings.environment != "development":
-    CORS_ORIGINS = ["*"]
+if settings.environment == "development":
+    CORS_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://localhost:3000",
+    ]
+else:
+    # Production: read explicit origins from CORS_ALLOWED_ORIGINS env var (comma-separated)
+    extra = [o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()]
+    CORS_ORIGINS = extra if extra else []
 
 
 @asynccontextmanager

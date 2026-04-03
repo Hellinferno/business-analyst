@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -8,6 +9,18 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoe
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+settings = get_settings()
+
+_PROMPT_INJECTION_PATTERNS = [
+    r"(?i)ignore\s+(previous|all|above)\s+(instructions|rules|prompts)",
+    r"(?i)you\s+are\s+now\s+(a|an|no\s+longer)",
+    r"(?i)system\s*:\s*",
+    r"(?i)<\|.*?\|>",
+    r"(?i)\[.*?system.*?\]",
+    r"(?i)disregard\s+(all|previous|earlier)\s+(instructions|rules)",
+    r"(?i)forget\s+(all|your)\s+(previous|earlier)\s+(instructions|rules)",
+]
 
 settings = get_settings()
 
@@ -38,15 +51,22 @@ def _get_llm():
 
 class AIService:
     def load_prompt(self, template_name: str, **kwargs) -> str:
+        sanitized = {k: self._sanitize_input(v) if isinstance(v, str) else v for k, v in kwargs.items()}
         try:
             template = env.get_template(f"{template_name}.j2")
-            return template.render(**kwargs)
+            return template.render(**sanitized)
         except TemplateNotFound:
             logger.warning("Prompt template '%s.j2' not found in %s, using built-in fallback", template_name, _PROMPTS_DIR)
-            return self._get_default_prompt(template_name, **kwargs)
+            return self._get_default_prompt(template_name, **sanitized)
         except Exception as exc:
             logger.error("Error rendering template '%s.j2': %s", template_name, exc, exc_info=True)
-            return self._get_default_prompt(template_name, **kwargs)
+            return self._get_default_prompt(template_name, **sanitized)
+
+    def _sanitize_input(self, text: str) -> str:
+        text = text.strip()
+        for pattern in _PROMPT_INJECTION_PATTERNS:
+            text = re.sub(pattern, "[FILTERED]", text)
+        return text
 
     def _get_default_prompt(self, template_name: str, **kwargs) -> str:
         defaults = {

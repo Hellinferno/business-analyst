@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { toast } from 'sonner'
 import { uat } from '@/lib/api'
 import type { UATChecklistResponse } from '@/types/api'
 
@@ -19,13 +20,16 @@ export function useUAT() {
 
   const generateChecklist = useCallback(async (requirements: string, userStories: string) => {
     setChecklist({ data: null, isLoading: true, error: null })
+    const toastId = toast.loading('Generating UAT checklist…')
     try {
       const data = await uat.generateChecklist(requirements, userStories) as UATChecklistResponse
       setChecklist({ data, isLoading: false, error: null })
+      toast.success('UAT checklist generated', { id: toastId })
       return data
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to generate UAT checklist'
       setChecklist(prev => ({ ...prev, isLoading: false, error: message }))
+      toast.error('Failed to generate UAT checklist', { id: toastId, description: message })
       throw err
     }
   }, [])

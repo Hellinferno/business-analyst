@@ -1,3 +1,4 @@
+import os
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
@@ -23,6 +24,9 @@ class Settings(BaseSettings):
     @field_validator("jwt_secret")
     @classmethod
     def jwt_secret_must_be_strong(cls, v: str) -> str:
+        env = os.getenv("ENVIRONMENT", "development")
+        if env == "development" and v in _INSECURE_DEFAULTS and len(v) >= 32:
+            return v
         if v in _INSECURE_DEFAULTS or len(v) < 32:
             raise ValueError(
                 "JWT_SECRET is insecure. Set a random string of at least 32 characters in your .env file. "
@@ -42,6 +46,8 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = ""
     r2_bucket_name: str = "ba-assistant-files"
     r2_public_url: str = ""
+
+    cors_allowed_origins: str = ""  # comma-separated production origins, e.g. "https://meridian.app"
 
     environment: str = "development"
     debug: bool = True

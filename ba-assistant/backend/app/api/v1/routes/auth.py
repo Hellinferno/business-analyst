@@ -48,6 +48,12 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
 
 
+def validate_password_strength(password: str) -> Optional[str]:
+    if len(password) < 8:
+        return "Password must be at least 8 characters long"
+    return None
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -62,6 +68,13 @@ async def register(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db),
 ):
+    password_error = validate_password_strength(user_data.password)
+    if password_error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=password_error,
+        )
+
     user_repo = UserRepository(db)
 
     existing_email = await user_repo.get_by_email(user_data.email)

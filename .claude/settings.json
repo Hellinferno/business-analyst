@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where.exe gh:*)",
+      "Read(//c/Users/Lenovo/AppData/**)",
+      "Bash(cmd.exe /c \"where gh\")",
+      "Bash(\"/c/Users/Lenovo/AppData/Local/Programs/GitHub CLI/gh.exe\" --version)",
+      "Bash(cmd.exe /c \"dir \"\"C:\\\\Users\\\\Lenovo\\\\AppData\\\\Local\\\\Programs\\\\GitHub CLI\"\"\")",
+      "Bash(cmd.exe /c \"dir /s /b %LOCALAPPDATA%\\\\gh.exe 2>nul & dir /s /b \"\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\"\" 2>nul\")",
+      "Bash(powershell.exe -Command \"winget list --id GitHub.cli\")",
+      "Bash(powershell.exe -Command \"Get-Package -Name ''GitHub CLI'' -ErrorAction SilentlyContinue | Select-Object Name, Version, Source, FastPackageReference\")",
+      "Bash(powershell.exe -Command \"\\(Get-ItemProperty ''HKLM:\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\*'' | Where-Object DisplayName -eq ''GitHub CLI''\\) | Select-Object InstallLocation, DisplayVersion\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem ''C:\\\\Program Files\\\\GitHub CLI\\\\'' -ErrorAction SilentlyContinue; Get-ChildItem ''C:\\\\Program Files \\(x86\\)\\\\GitHub CLI\\\\'' -ErrorAction SilentlyContinue\")",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" --version)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth status)",
+      "Edit(/.claude/skills/security-review/**)",
+      "Edit(/.claude/skills/deploy/**)",
+      "Bash(cd /d/business analyst/ba-assistant)"
+    ]
+  }
+}
