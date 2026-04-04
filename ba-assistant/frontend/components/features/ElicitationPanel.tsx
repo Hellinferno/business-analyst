@@ -203,7 +203,7 @@ export function ElicitationPanel() {
               </div>
             )}
             {scopeResult.data && !scopeResult.isLoading && (
-              <ResultDisplay title="Scope Definition" content={scopeResult.data.scope_definition} />
+              <ResultDisplay title="Scope Definition" content={scopeResult.data.content} />
             )}
           </TabsContent>
 

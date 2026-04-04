@@ -317,17 +317,22 @@ Provide:
 Format as Markdown."""
 
     def _ambiguity_check_prompt(self, **kwargs) -> str:
-        return f"""Analyze the following requirements for ambiguity, gaps, and conflicts:
+        return f"""Analyze the following requirements for ambiguity, gaps, conflicts, and testability:
 
 Requirements:
 {kwargs.get('requirements')}
 
-Provide analysis in JSON format:
+Provide analysis as a single JSON object with this exact structure:
 {{
+  "overall_quality_score": <integer 0-100>,
+  "summary": "string — one paragraph executive summary of requirements quality",
   "ambiguous_terms": [{{"term": "string", "issue": "string", "suggestion": "string"}}],
   "gaps": [{{"area": "string", "missing_info": "string"}}],
-  "conflicts": [{{"requirement_a": "string", "requirement_b": "string", "resolution": "string"}}]
-}}"""
+  "conflicts": [{{"requirement_a": "string", "requirement_b": "string", "conflict_description": "string"}}],
+  "testability_issues": [{{"requirement": "string", "issue": "string", "suggestion": "string"}}]
+}}
+
+Return only the JSON object, no markdown fences."""
 
 
 ai_service = AIService()

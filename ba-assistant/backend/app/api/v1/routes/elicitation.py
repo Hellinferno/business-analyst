@@ -56,6 +56,9 @@ class AmbiguityCheckResponse(BaseModel):
     ambiguous_terms: List[dict]
     gaps: List[dict]
     conflicts: List[dict]
+    overall_quality_score: int
+    summary: str
+    testability_issues: List[dict]
 
 
 class CreateSessionRequest(BaseModel):
@@ -197,6 +200,9 @@ async def check_ambiguity(
         ambiguous_terms=parsed.get("ambiguous_terms", []),
         gaps=parsed.get("gaps", []),
         conflicts=parsed.get("conflicts", []),
+        overall_quality_score=parsed.get("overall_quality_score", 0),
+        summary=parsed.get("summary", ""),
+        testability_issues=parsed.get("testability_issues", []),
     )
 
 
