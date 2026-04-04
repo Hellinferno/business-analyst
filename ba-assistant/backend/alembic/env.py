@@ -1,5 +1,4 @@
 import asyncio
-import os
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -7,12 +6,12 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from app.core.config import get_settings
+from app.db.models.document import Document, DocumentType  # noqa: F401
+from app.db.models.elicitation import ElicitationSession, GeneratedQuestion  # noqa: F401
 
 # Import all models so Alembic can detect them for autogenerate
 from app.db.models.user import Base, User  # noqa: F401
-from app.db.models.document import Document, DocumentType  # noqa: F401
-from app.db.models.elicitation import ElicitationSession, GeneratedQuestion  # noqa: F401
-from app.core.config import get_settings
 
 # this is the Alembic Config object
 config = context.config

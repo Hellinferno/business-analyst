@@ -1,22 +1,21 @@
-from datetime import timedelta
-from typing import Optional
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 
-from app.core.dependencies import get_db, get_user_repository
+from app.core.config import get_settings
+from app.core.dependencies import get_db
 from app.core.security import (
-    verify_password,
-    get_password_hash,
     create_access_token,
     create_refresh_token,
+    get_password_hash,
+    verify_password,
     verify_refresh_token,
 )
-from app.db.repositories.user_repository import UserRepository
 from app.db.models.user import User, UserRole
-from app.core.config import get_settings
+from app.db.repositories.user_repository import UserRepository
 
 settings = get_settings()
 
@@ -33,7 +32,7 @@ class UserResponse(BaseModel):
     id: str
     email: str
     username: str
-    full_name: Optional[str] = None
+    full_name: str | None = None
     role: UserRole
     is_active: bool
 
@@ -45,10 +44,10 @@ class UserCreate(BaseModel):
     email: EmailStr
     username: str
     password: str
-    full_name: Optional[str] = None
+    full_name: str | None = None
 
 
-def validate_password_strength(password: str) -> Optional[str]:
+def validate_password_strength(password: str) -> str | None:
     if len(password) < 8:
         return "Password must be at least 8 characters long"
     return None

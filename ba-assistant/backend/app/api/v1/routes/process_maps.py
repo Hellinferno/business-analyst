@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from app.core.dependencies import get_current_active_user
-from app.db.models.user import User
 from app.core.limiter import limiter
+from app.db.models.user import User
 from app.services.ai_service import ai_service
 
 router = APIRouter(prefix="/process-maps", tags=["Process Mapping"])

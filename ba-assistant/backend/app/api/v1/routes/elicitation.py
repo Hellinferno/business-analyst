@@ -1,17 +1,17 @@
 import json
-from typing import Optional, List
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 
-from app.core.dependencies import get_db, get_current_active_user
+from app.core.dependencies import get_current_active_user, get_db
 from app.core.limiter import limiter
-from app.db.repositories.document_repository import DocumentRepository
-from app.db.repositories.elicitation_repository import ElicitationRepository
-from app.db.models.user import User
 from app.db.models.document import Document, DocumentType
 from app.db.models.elicitation import ElicitationSession, GeneratedQuestion
+from app.db.models.user import User
+from app.db.repositories.document_repository import DocumentRepository
+from app.db.repositories.elicitation_repository import ElicitationRepository
 from app.services.ai_service import ai_service
 
 router = APIRouter(prefix="/elicitation", tags=["Requirements Elicitation"])
@@ -22,7 +22,7 @@ _MAX_TEXT = 10_000
 class GenerateQuestionsRequest(BaseModel):
     project_name: str = Field(..., min_length=1, max_length=255)
     project_description: str = Field(..., min_length=1, max_length=_MAX_TEXT)
-    stakeholders: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    stakeholders: str | None = Field(None, max_length=_MAX_TEXT)
 
 
 class QuestionItem(BaseModel):
@@ -33,7 +33,7 @@ class QuestionItem(BaseModel):
 
 class GenerateQuestionsResponse(BaseModel):
     session_id: str
-    questions: List[QuestionItem]
+    questions: list[QuestionItem]
 
 
 class ScopeWizardRequest(BaseModel):
@@ -53,26 +53,26 @@ class AmbiguityCheckRequest(BaseModel):
 
 class AmbiguityCheckResponse(BaseModel):
     document_id: str
-    ambiguous_terms: List[dict]
-    gaps: List[dict]
-    conflicts: List[dict]
+    ambiguous_terms: list[dict]
+    gaps: list[dict]
+    conflicts: list[dict]
     overall_quality_score: int
     summary: str
-    testability_issues: List[dict]
+    testability_issues: list[dict]
 
 
 class CreateSessionRequest(BaseModel):
     project_name: str = Field(..., min_length=1, max_length=255)
-    project_description: Optional[str] = Field(None, max_length=_MAX_TEXT)
-    scope_in: Optional[str] = Field(None, max_length=_MAX_TEXT)
-    scope_out: Optional[str] = Field(None, max_length=_MAX_TEXT)
-    stakeholders: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    project_description: str | None = Field(None, max_length=_MAX_TEXT)
+    scope_in: str | None = Field(None, max_length=_MAX_TEXT)
+    scope_out: str | None = Field(None, max_length=_MAX_TEXT)
+    stakeholders: str | None = Field(None, max_length=_MAX_TEXT)
 
 
 class SessionResponse(BaseModel):
     id: str
     project_name: str
-    project_description: Optional[str]
+    project_description: str | None
     status: str
 
     class Config:
@@ -227,7 +227,7 @@ async def create_session(
     return created_session
 
 
-@router.get("/sessions", response_model=List[SessionResponse])
+@router.get("/sessions", response_model=list[SessionResponse])
 async def list_sessions(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),

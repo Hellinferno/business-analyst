@@ -1,6 +1,7 @@
 """Tests for elicitation endpoints."""
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 MOCK_QUESTIONS = [
     {

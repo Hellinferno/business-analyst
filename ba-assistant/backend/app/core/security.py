@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
-from typing import Any, Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+from typing import Any
+
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
@@ -21,7 +22,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:

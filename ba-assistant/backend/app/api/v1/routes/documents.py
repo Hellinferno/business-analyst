@@ -1,15 +1,15 @@
 import json
-from typing import Optional, List
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 
-from app.core.dependencies import get_db, get_current_active_user
+from app.core.dependencies import get_current_active_user, get_db
 from app.core.limiter import limiter
-from app.db.repositories.document_repository import DocumentRepository
-from app.db.models.user import User
 from app.db.models.document import Document, DocumentType
+from app.db.models.user import User
+from app.db.repositories.document_repository import DocumentRepository
 from app.services.ai_service import ai_service
 
 router = APIRouter(prefix="/documents", tags=["Document Generation"])
@@ -21,14 +21,14 @@ class GenerateBRDRequest(BaseModel):
     project_name: str = Field(..., min_length=1, max_length=255)
     project_description: str = Field(..., min_length=1, max_length=_MAX_TEXT)
     requirements: str = Field(..., min_length=1, max_length=_MAX_TEXT)
-    scope_in: Optional[str] = Field(None, max_length=_MAX_TEXT)
-    scope_out: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    scope_in: str | None = Field(None, max_length=_MAX_TEXT)
+    scope_out: str | None = Field(None, max_length=_MAX_TEXT)
 
 
 class GenerateUserStoriesRequest(BaseModel):
     project_name: str = Field(..., min_length=1, max_length=255)
     requirements: str = Field(..., min_length=1, max_length=_MAX_TEXT)
-    user_personas: Optional[str] = Field(None, max_length=_MAX_TEXT)
+    user_personas: str | None = Field(None, max_length=_MAX_TEXT)
 
 
 class GenerateAcceptanceCriteriaRequest(BaseModel):
@@ -39,13 +39,13 @@ class DocumentCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     document_type: DocumentType
     content: str
-    input_data: Optional[str] = None
+    input_data: str | None = None
 
 
 class DocumentUpdate(BaseModel):
-    title: Optional[str] = Field(None, max_length=255)
-    content: Optional[str] = None
-    is_public: Optional[bool] = None
+    title: str | None = Field(None, max_length=255)
+    content: str | None = None
+    is_public: bool | None = None
 
 
 class DocumentListItem(BaseModel):
@@ -156,9 +156,9 @@ async def generate_acceptance_criteria(
     return _doc_response(created_doc)
 
 
-@router.get("", response_model=List[DocumentListItem])
+@router.get("", response_model=list[DocumentListItem])
 async def list_documents(
-    doc_type: Optional[DocumentType] = None,
+    doc_type: DocumentType | None = None,
     limit: int = 50,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),

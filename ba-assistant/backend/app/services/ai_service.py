@@ -2,7 +2,6 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Optional
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoescape
 
@@ -98,7 +97,7 @@ class AIService:
         self,
         project_name: str,
         project_description: str,
-        stakeholders: Optional[str] = None,
+        stakeholders: str | None = None,
     ) -> str:
         prompt = self.load_prompt(
             "elicitation_questions",
@@ -113,8 +112,8 @@ class AIService:
         project_name: str,
         project_description: str,
         requirements: str,
-        scope_in: Optional[str] = None,
-        scope_out: Optional[str] = None,
+        scope_in: str | None = None,
+        scope_out: str | None = None,
     ) -> str:
         prompt = self.load_prompt(
             "brd_generator",
@@ -130,7 +129,7 @@ class AIService:
         self,
         project_name: str,
         requirements: str,
-        user_personas: Optional[str] = None,
+        user_personas: str | None = None,
     ) -> str:
         prompt = self.load_prompt(
             "user_stories",

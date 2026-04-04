@@ -1,12 +1,14 @@
-from datetime import datetime
-from sqlalchemy import String, Text, ForeignKey, DateTime, Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column
 import enum
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.models.user import Base
 
 
-class DocumentType(str, enum.Enum):
+class DocumentType(enum.StrEnum):
     BRD = "brd"
     USER_STORY = "user_story"
     ACCEPTANCE_CRITERIA = "acceptance_criteria"

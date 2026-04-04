@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.routes import auth, elicitation, documents, process_maps, uat
+from app.api.v1.routes import auth, documents, elicitation, process_maps, uat
 
 api_router = APIRouter(prefix="/v1")
 

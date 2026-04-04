@@ -1,4 +1,4 @@
-from typing import Optional, List
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,13 +9,13 @@ class ElicitationRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_session_by_id(self, session_id: str) -> Optional[ElicitationSession]:
+    async def get_session_by_id(self, session_id: str) -> ElicitationSession | None:
         result = await self.db.execute(
             select(ElicitationSession).where(ElicitationSession.id == session_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_sessions_by_user_id(self, user_id: str) -> List[ElicitationSession]:
+    async def get_sessions_by_user_id(self, user_id: str) -> list[ElicitationSession]:
         result = await self.db.execute(
             select(ElicitationSession)
             .where(ElicitationSession.user_id == user_id)
@@ -42,7 +42,7 @@ class ElicitationRepository:
             return True
         return False
 
-    async def get_questions_by_session_id(self, session_id: str) -> List[GeneratedQuestion]:
+    async def get_questions_by_session_id(self, session_id: str) -> list[GeneratedQuestion]:
         result = await self.db.execute(
             select(GeneratedQuestion)
             .where(GeneratedQuestion.session_id == session_id)

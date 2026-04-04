@@ -1,12 +1,13 @@
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
 from app.core.security import verify_access_token
-from app.db.repositories.user_repository import UserRepository
 from app.db.models.user import User
+from app.db.repositories.user_repository import UserRepository
 
 settings = get_settings()
 

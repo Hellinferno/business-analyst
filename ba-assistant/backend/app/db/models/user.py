@@ -1,10 +1,12 @@
-from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime, Enum as SQLEnum
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 import enum
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     ADMIN = "admin"
     PRO_USER = "pro_user"
     FREE_USER = "free_user"

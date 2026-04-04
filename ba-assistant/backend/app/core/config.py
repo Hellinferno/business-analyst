@@ -1,7 +1,8 @@
 import os
+from functools import lru_cache
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
 
 _INSECURE_DEFAULTS = {"change-me-in-production", "secret", "changeme", "dev-secret"}
 

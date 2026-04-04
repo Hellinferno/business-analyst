@@ -4,15 +4,14 @@ import os
 # Set test secrets before any app module is imported so validators pass
 os.environ.setdefault("JWT_SECRET", "test-secret-for-pytest-only-do-not-use-in-production-x")
 
-import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
 from app.core.dependencies import get_db
 from app.db.models.user import Base
+from app.main import app
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
