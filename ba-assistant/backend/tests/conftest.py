@@ -12,6 +12,8 @@ from sqlalchemy.pool import StaticPool
 from app.core.dependencies import get_db
 from app.db.models.user import Base
 from app.main import app
+from app.core.limiter import limiter
+limiter.enabled = False
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -67,7 +69,7 @@ async def registered_user(client):
         json={
             "email": "test@example.com",
             "username": "testuser",
-            "password": "testpassword123",
+            "password": "Test@Password123!",
             "full_name": "Test User",
         },
     )
@@ -80,9 +82,12 @@ async def auth_headers(client, registered_user):
     """Return Authorization headers for the registered user."""
     response = await client.post(
         "/api/v1/auth/login",
-        data={"username": "test@example.com", "password": "testpassword123"},
+        data={"username": "test@example.com", "password": "Test@Password123!"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+limiter.enabled = False
+
+

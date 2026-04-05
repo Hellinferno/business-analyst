@@ -38,6 +38,12 @@ class UserRepository:
         await self.db.refresh(user)
         return user
 
+    async def update_refresh_token(self, user_id: str, token: str | None) -> None:
+        user = await self.get_by_id(user_id)
+        if user:
+            user.refresh_token = token
+            await self.db.flush()
+
     async def delete(self, user_id: str) -> bool:
         user = await self.get_by_id(user_id)
         if user:

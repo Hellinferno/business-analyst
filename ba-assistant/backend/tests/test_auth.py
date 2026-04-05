@@ -9,7 +9,7 @@ async def test_register_success(client):
         json={
             "email": "newuser@example.com",
             "username": "newuser",
-            "password": "securepassword123",
+            "password": "Test@Test@Password123!!",
         },
     )
     assert response.status_code == 201
@@ -27,7 +27,7 @@ async def test_register_duplicate_email(client, registered_user):
         json={
             "email": "test@example.com",
             "username": "differentuser",
-            "password": "password123",
+            "password": "Test@Password123!",
         },
     )
     assert response.status_code == 400
@@ -41,7 +41,7 @@ async def test_register_duplicate_username(client, registered_user):
         json={
             "email": "different@example.com",
             "username": "testuser",
-            "password": "password123",
+            "password": "Test@Password123!",
         },
     )
     assert response.status_code == 400
@@ -52,7 +52,7 @@ async def test_register_duplicate_username(client, registered_user):
 async def test_login_success(client, registered_user):
     response = await client.post(
         "/api/v1/auth/login",
-        data={"username": "test@example.com", "password": "testpassword123"},
+        data={"username": "test@example.com", "password": "Test@Test@Password123!!"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
@@ -66,7 +66,7 @@ async def test_login_success(client, registered_user):
 async def test_login_wrong_password(client, registered_user):
     response = await client.post(
         "/api/v1/auth/login",
-        data={"username": "test@example.com", "password": "wrongpassword"},
+        data={"username": "test@example.com", "password": "Wrong!@#12345"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 401
@@ -76,7 +76,7 @@ async def test_login_wrong_password(client, registered_user):
 async def test_login_unknown_email(client):
     response = await client.post(
         "/api/v1/auth/login",
-        data={"username": "nobody@example.com", "password": "somepassword"},
+        data={"username": "nobody@example.com", "password": "Some!@#pass1"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 401
@@ -87,7 +87,7 @@ async def test_token_refresh(client, registered_user):
     # Login to get tokens
     login_response = await client.post(
         "/api/v1/auth/login",
-        data={"username": "test@example.com", "password": "testpassword123"},
+        data={"username": "test@example.com", "password": "Test@Test@Password123!!"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     refresh_token = login_response.json()["refresh_token"]
